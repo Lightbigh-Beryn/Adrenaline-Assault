@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adrenaline Assault</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #000814;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    
+    #gameCanvas {
+      border: 2px solid #00ffff;
+      display: block;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+    
+    /* Loading indicator */
+    #loading {
+      position: absolute;
+      color: #00ffff;
+      font-size: 24px;
+      text-align: center;
+    }
+    
+    #loading.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <p>LOADING ADRENALINE ASSAULT...</p>
+    <p style="font-size: 16px; color: #aaa;">Initializing game modules...</p>
+  </div>
+  <canvas id="gameCanvas" width="1152" height="648"></canvas>
+  
+  <!-- IMPORTANT: Add type="module" to load ES6 modules -->
+  <script type="module" src="src/main.js"></script>
+  
+  <script>
+    // Hide loading screen once game starts
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
