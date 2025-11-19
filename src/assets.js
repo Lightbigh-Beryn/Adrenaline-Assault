@@ -9,14 +9,14 @@ titleBg.onload = () => { titleBgLoaded = true; };
 Game background
 ========================= */
 export const bgImage = new Image();
-bgImage.src = './assets/images/Background.png';
+bgImage.src = './assets/images/background.png';
 export let bgLoaded = false;
 bgImage.onload = () => { bgLoaded = true; };
 /* =========================
 Player ship
 ========================= */
 export const shipImage = new Image();
-shipImage.src = './assets/images/ship.png';
+shipImage.src = './assets/images/ship.PNG';
 export let shipLoaded = false;
 shipImage.onload = () => { shipLoaded = true; };
 /* =========================
