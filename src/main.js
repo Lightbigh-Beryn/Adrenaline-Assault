@@ -1196,11 +1196,6 @@ startActualGameplay();
 Draw Loop
 ========================= */
 function draw() {
-  // IMPORTANT: Check orientation warning FIRST (no camera shake during loading/title)
-  if (drawOrientationWarning(ctx)) {
-    return; // Don't draw anything else if in portrait mode
-  }
-
   // LOADING SCREEN - Draw without camera shake
   if (gameState === 'loading') {
     const progress = getLoadingProgress();
@@ -1220,6 +1215,11 @@ function draw() {
     return; // Exit early
   }
   
+  // Check orientation warning during gameplay
+  if (drawOrientationWarning(ctx)) {
+    return; // Don't draw anything else if in portrait mode
+  }
+
   // GAMEPLAY - Apply camera shake ONLY during gameplay
   ctx.save();
   ctx.translate(cameraShake.offsetX, cameraShake.offsetY);

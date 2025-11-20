@@ -30,11 +30,24 @@ export const createBossTriggers = () => [
   { cameraX: 15000, type: 'final', spawned: false, index: 2 }
 ];
 
-// Device detection
+// Device detection (reliable for 2025 mobile browsers)
 export const isTouchDevice = () => {
-  return (('ontouchstart' in window) ||
-    (navigator.maxTouchPoints > 0) ||
-    (navigator.msMaxTouchPoints > 0));
+  return (
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  );
 };
 
-export const IS_MOBILE = isTouchDevice();
+export const isMobileDevice = () => {
+  // Check for touch support AND small screen
+  const hasTouch = isTouchDevice();
+  const isSmallScreen = window.innerWidth <= 900 || window.innerHeight <= 900;
+  
+  // Also check user agent for mobile devices
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  console.log('Touch:', hasTouch, 'Small screen:', isSmallScreen, 'Mobile UA:', isMobileUA);
+  
+  return hasTouch && (isSmallScreen || isMobileUA);
+};
+
+export const IS_MOBILE = isMobileDevice();

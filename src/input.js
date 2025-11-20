@@ -86,24 +86,27 @@ export function setupInputHandlers(canvas, callbacks) {
       const touchX = (touch.clientX - rect.left) * scaleX;
       const touchY = (touch.clientY - rect.top) * scaleY;
       
-      // Left 60% = movement, Right 40% = UI clicks
-      if (touchX < canvas.width * 0.6) {
-        if (!touchControls.active) {
-          touchControls.active = true;
-          touchControls.identifier = touch.identifier;
-          touchControls.startX = touchX;
-          touchControls.startY = touchY;
-          touchControls.currentX = touchX;
-          touchControls.currentY = touchY;
-        }
-      } else {
-        // UI touch
-        mouse.x = touchX;
-        mouse.y = touchY;
-        if (callbacks.onMouseDown) {
-          callbacks.onMouseDown(e, mouse);
-        }
-      }
+      // Use clientX directly since it's in screen pixels
+      if (touch.clientX < window.innerWidth * 0.6) {
+    // Movement touch
+    if (!touchControls.active) {
+      touchControls.active = true;
+      touchControls.identifier = touch.identifier;
+      touchControls.startX = touchX;
+      touchControls.startY = touchY;
+      touchControls.currentX = touchX;
+      touchControls.currentY = touchY;
+    }
+} else {
+    // UI touch
+    mouse.x = touchX;
+    mouse.y = touchY;
+
+    if (callbacks.onMouseDown) {
+      callbacks.onMouseDown(e, mouse);
+    }
+}
+
     }
   }, { passive: false });
   

@@ -23,20 +23,35 @@ export function initCanvas() {
     return c;
   })();
   
-  // ✅ Set canvas size based on config
-  canvas.width = CANVAS_CONFIG.width;
-  canvas.height = CANVAS_CONFIG.height;
-  
-  // ✅ Add resize handler for responsive canvas
   const resizeCanvas = () => {
-    // Keep the game's internal resolution
+    // Always keep internal resolution constant
     canvas.width = CANVAS_CONFIG.width;
     canvas.height = CANVAS_CONFIG.height;
-    
-    // Log for debugging
-    console.log('Canvas resized:', canvas.width, 'x', canvas.height);
-    console.log('Display size:', canvas.offsetWidth, 'x', canvas.offsetHeight);
+
+    // Calculate aspect ratio
+    const targetAspect = CANVAS_CONFIG.width / CANVAS_CONFIG.height;
+    const windowAspect = window.innerWidth / window.innerHeight;
+
+    let displayWidth, displayHeight;
+
+    if (windowAspect > targetAspect) {
+      // Window is wider than game - fit to height
+      displayHeight = window.innerHeight;
+      displayWidth = displayHeight * targetAspect;
+    } else {
+      // Window is taller than game - fit to width
+      displayWidth = window.innerWidth;
+      displayHeight = displayWidth / targetAspect;
+    }
+
+    canvas.style.width = displayWidth + "px";
+    canvas.style.height = displayHeight + "px";
+
+    console.log("Canvas display size:", canvas.style.width, canvas.style.height);
+    console.log("Window size:", window.innerWidth, window.innerHeight);
+    console.log("IS_MOBILE:", IS_MOBILE);
   };
+
   
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', () => {
@@ -615,29 +630,32 @@ export function drawTouchControls(ctx, touchControls) {
   const touchY = touchControls.currentY;
   
   ctx.save();
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.5; // Changed from 0.3 to make it more visible
   
+  // Outer circle
   ctx.beginPath();
   ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  
-  ctx.beginPath();
-  ctx.arc(touchX, touchY, 25, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0, 255, 255, 0.6)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
   ctx.lineWidth = 3;
   ctx.stroke();
   
+  // Inner circle (touch point)
+  ctx.beginPath();
+  ctx.arc(touchX, touchY, 25, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0, 255, 255, 1)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  
+  // Line from center to touch
   ctx.beginPath();
   ctx.moveTo(centerX, centerY);
   ctx.lineTo(touchX, touchY);
-  ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0, 255, 255, 0.7)';
+  ctx.lineWidth = 4;
   ctx.stroke();
   
   ctx.restore();
@@ -927,14 +945,23 @@ export function drawProjectiles(ctx, cameraX) {
    Mobile Orientation Warning
 ========================= */
 export function drawOrientationWarning(ctx) {
+  console.log('Checking orientation - IS_MOBILE:', IS_MOBILE, 
+              'Width:', window.innerWidth, 'Height:', window.innerHeight);
+  
   if (!IS_MOBILE) return false;
   
-  if (ctx.canvas.height > ctx.canvas.width) {
+  // Check if portrait mode (height > width)
+  const isPortrait = window.innerHeight > window.innerWidth;
+  
+  console.log('Is Portrait:', isPortrait);
+  
+  if (isPortrait) {
+    // Fill entire canvas
     ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     
     ctx.fillStyle = '#00ffff';
-    ctx.font = 'bold 24px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = '#00ffff';
@@ -942,23 +969,27 @@ export function drawOrientationWarning(ctx) {
     
     // Rotate icon
     ctx.save();
-    ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2 - 40);
+    ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2 - 60);
     ctx.rotate(Math.PI / 2);
-    ctx.font = 'bold 60px Arial';
+    ctx.font = 'bold 80px Arial';
     ctx.fillText('📱', 0, 0);
     ctx.restore();
     
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText('Please rotate your device', ctx.canvas.width / 2, ctx.canvas.height / 2 + 40);
+    ctx.font = '24px Arial';
+    ctx.fillText('to landscape mode', ctx.canvas.width / 2, ctx.canvas.height / 2 + 80);
+    
+    ctx.fillStyle = '#ffff00';
     ctx.font = '20px Arial';
-    ctx.fillText('Please rotate your device', ctx.canvas.width / 2, ctx.canvas.height / 2 + 30);
-    ctx.fillText('to landscape mode', ctx.canvas.width / 2, ctx.canvas.height / 2 + 60);
+    ctx.fillText('for the best experience', ctx.canvas.width / 2, ctx.canvas.height / 2 + 120);
     
     return true;
   }
   return false;
 }
-
 /* =========================
    Export main draw function
 ========================= */
