@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
   <title>Adrenaline Assault</title>
   <style>
     * {
@@ -15,7 +16,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000814;
+      background: #000;
       font-family: Arial, sans-serif;
       /* Prevent pull-to-refresh on mobile */
       overscroll-behavior: none;
@@ -35,16 +36,15 @@
       left: 0;
       right: 0;
       bottom: 0;
+      min-height: 100vh;
     }
     
     #gameCanvas {
       border: 2px solid #00ffff;
       display: block;
-      /* Make canvas fill screen while maintaining aspect ratio */
-      max-width: 100vw;
-      max-height: 100vh;
-      width: 100%;
-      height: auto;
+      /* Prevent canvas from stretching */
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
       /* Prevent touch gestures from affecting the canvas */
       touch-action: none;
     }
@@ -85,7 +85,7 @@
     <p style="font-size: 16px; color: #aaa;">Initializing game modules...</p>
   </div>
   
-  <!-- ✅ Remove width/height attributes - let JavaScript handle it -->
+  <!-- ✅ Canvas - JavaScript handles sizing -->
   <canvas id="gameCanvas"></canvas>
   
   <script type="module" src="src/main.js"></script>
