@@ -23,13 +23,27 @@ export function initCanvas() {
     return c;
   })();
   
+  // ✅ Set canvas size based on config
   canvas.width = CANVAS_CONFIG.width;
   canvas.height = CANVAS_CONFIG.height;
   
-  window.addEventListener('resize', () => {
+  // ✅ Add resize handler for responsive canvas
+  const resizeCanvas = () => {
+    // Keep the game's internal resolution
     canvas.width = CANVAS_CONFIG.width;
     canvas.height = CANVAS_CONFIG.height;
+    
+    // Log for debugging
+    console.log('Canvas resized:', canvas.width, 'x', canvas.height);
+    console.log('Display size:', canvas.offsetWidth, 'x', canvas.offsetHeight);
+  };
+  
+  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(resizeCanvas, 100); // Delay to let orientation change complete
   });
+  
+  resizeCanvas(); // Initial resize
   
   return canvas;
 }
