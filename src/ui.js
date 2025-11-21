@@ -14,7 +14,7 @@ import { hitSparks } from './weapons.js';
 
 /* =========================
    Canvas Setup
-========================= */
+========================= */ 
 export function initCanvas() {
   const canvas = document.getElementById('gameCanvas') || (() => {
     const c = document.createElement('canvas');
@@ -24,35 +24,49 @@ export function initCanvas() {
   })();
   
   const resizeCanvas = () => {
-    // Always keep internal resolution constant
+    // ✅ ALWAYS keep internal resolution at 1152×648 (NEVER changes)
     canvas.width = CANVAS_CONFIG.width;
     canvas.height = CANVAS_CONFIG.height;
 
-    // Calculate aspect ratio
-    const targetAspect = CANVAS_CONFIG.width / CANVAS_CONFIG.height;
-    const windowAspect = window.innerWidth / window.innerHeight;
+    // Get the game's aspect ratio (16:9)
+    const gameAspect = CANVAS_CONFIG.width / CANVAS_CONFIG.height; // 1.7778
 
-    let displayWidth, displayHeight;
+    if (IS_MOBILE) {
+      // 📱 MOBILE: Scale proportionally using CSS transform
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const screenAspect = screenWidth / screenHeight;
 
-    if (windowAspect > targetAspect) {
-      // Window is wider than game - fit to height
-      displayHeight = window.innerHeight;
-      displayWidth = displayHeight * targetAspect;
+      let scale;
+      
+      if (screenAspect > gameAspect) {
+        // Screen is wider than game - fit to height
+        scale = screenHeight / CANVAS_CONFIG.height;
+      } else {
+        // Screen is taller than game - fit to width
+        scale = screenWidth / CANVAS_CONFIG.width;
+      }
+
+      // Set canvas display size to native resolution
+      canvas.style.width = CANVAS_CONFIG.width + 'px';
+      canvas.style.height = CANVAS_CONFIG.height + 'px';
+      
+      // Apply CSS transform to scale it
+      canvas.style.transform = `scale(${scale})`;
+      canvas.style.transformOrigin = 'center center';
+      
+      console.log('📱 Mobile - Scale factor:', scale.toFixed(2), 
+                  'Screen:', screenWidth + '×' + screenHeight);
     } else {
-      // Window is taller than game - fit to width
-      displayWidth = window.innerWidth;
-      displayHeight = displayWidth / targetAspect;
+      // 🖥️ DESKTOP: Keep at exact 1152×648 pixels, NO scaling
+      canvas.style.width = CANVAS_CONFIG.width + 'px';
+      canvas.style.height = CANVAS_CONFIG.height + 'px';
+      canvas.style.transform = 'none'; // Remove any transform
+      
+      console.log('🖥️ Desktop - Canvas fixed at:', CANVAS_CONFIG.width + '×' + CANVAS_CONFIG.height);
     }
-
-    canvas.style.width = displayWidth + "px";
-    canvas.style.height = displayHeight + "px";
-
-    console.log("Canvas display size:", canvas.style.width, canvas.style.height);
-    console.log("Window size:", window.innerWidth, window.innerHeight);
-    console.log("IS_MOBILE:", IS_MOBILE);
   };
 
-  
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', () => {
     setTimeout(resizeCanvas, 100); // Delay to let orientation change complete
