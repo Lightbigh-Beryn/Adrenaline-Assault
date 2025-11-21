@@ -38,16 +38,15 @@ export const isTouchDevice = () => {
 };
 
 export const isMobileDevice = () => {
-  // Check for touch support AND small screen
-  const hasTouch = isTouchDevice();
-  const isSmallScreen = window.innerWidth <= 900 || window.innerHeight <= 900;
-  
-  // Also check user agent for mobile devices
+  // Only check User Agent - most reliable method
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  console.log('Touch:', hasTouch, 'Small screen:', isSmallScreen, 'Mobile UA:', isMobileUA);
+  // Log for debugging
+  console.log('📱 Device detection:', isMobileUA ? 'MOBILE' : 'DESKTOP');
+  console.log('   User Agent:', navigator.userAgent);
+  console.log('   Window size:', window.innerWidth, '×', window.innerHeight);
   
-  return hasTouch && (isSmallScreen || isMobileUA);
+  return isMobileUA;
 };
 
 export const IS_MOBILE = isMobileDevice();
