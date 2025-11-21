@@ -38,13 +38,10 @@ export const isTouchDevice = () => {
 };
 
 export const isMobileDevice = () => {
-  // Only check User Agent - most reliable method
+  // Only check User Agent - used for orientation warning
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  // Log for debugging
-  console.log('📱 Device detection:', isMobileUA ? 'MOBILE' : 'DESKTOP');
-  console.log('   User Agent:', navigator.userAgent);
-  console.log('   Window size:', window.innerWidth, '×', window.innerHeight);
+  console.log('📱 Mobile UA detection:', isMobileUA ? 'MOBILE' : 'DESKTOP');
   
   return isMobileUA;
 };

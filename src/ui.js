@@ -23,49 +23,54 @@ export function initCanvas() {
     return c;
   })();
   
-  const resizeCanvas = () => {
-    // ✅ ALWAYS keep internal resolution at 1152×648 (NEVER changes)
-    canvas.width = CANVAS_CONFIG.width;
-    canvas.height = CANVAS_CONFIG.height;
+const resizeCanvas = () => {
+  // ✅ ALWAYS keep internal resolution at 1152×648 (NEVER changes)
+  canvas.width = CANVAS_CONFIG.width;
+  canvas.height = CANVAS_CONFIG.height;
 
-    // Get the game's aspect ratio (16:9)
-    const gameAspect = CANVAS_CONFIG.width / CANVAS_CONFIG.height; // 1.7778
+  // Get the game's aspect ratio (16:9)
+  const gameAspect = CANVAS_CONFIG.width / CANVAS_CONFIG.height; // 1.7778
 
-    if (IS_MOBILE) {
-      // 📱 MOBILE: Scale proportionally using CSS transform
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-      const screenAspect = screenWidth / screenHeight;
+  // Get actual screen/window size
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+  const screenAspect = screenWidth / screenHeight;
 
-      let scale;
-      
-      if (screenAspect > gameAspect) {
-        // Screen is wider than game - fit to height
-        scale = screenHeight / CANVAS_CONFIG.height;
-      } else {
-        // Screen is taller than game - fit to width
-        scale = screenWidth / CANVAS_CONFIG.width;
-      }
+  // Decide if we need to scale based on SCREEN SIZE, not device type
+  const needsScaling = screenWidth < CANVAS_CONFIG.width || screenHeight < CANVAS_CONFIG.height;
 
-      // Set canvas display size to native resolution
-      canvas.style.width = CANVAS_CONFIG.width + 'px';
-      canvas.style.height = CANVAS_CONFIG.height + 'px';
-      
-      // Apply CSS transform to scale it
-      canvas.style.transform = `scale(${scale})`;
-      canvas.style.transformOrigin = 'center center';
-      
-      console.log('📱 Mobile - Scale factor:', scale.toFixed(2), 
-                  'Screen:', screenWidth + '×' + screenHeight);
+  if (needsScaling) {
+    // 📱 SMALL SCREEN: Scale proportionally using CSS transform
+    let scale;
+    
+    if (screenAspect > gameAspect) {
+      // Screen is wider than game - fit to height
+      scale = screenHeight / CANVAS_CONFIG.height;
     } else {
-      // 🖥️ DESKTOP: Keep at exact 1152×648 pixels, NO scaling
-      canvas.style.width = CANVAS_CONFIG.width + 'px';
-      canvas.style.height = CANVAS_CONFIG.height + 'px';
-      canvas.style.transform = 'none'; // Remove any transform
-      
-      console.log('🖥️ Desktop - Canvas fixed at:', CANVAS_CONFIG.width + '×' + CANVAS_CONFIG.height);
+      // Screen is taller than game - fit to width
+      scale = screenWidth / CANVAS_CONFIG.width;
     }
-  };
+
+    // Set canvas display size to native resolution
+    canvas.style.width = CANVAS_CONFIG.width + 'px';
+    canvas.style.height = CANVAS_CONFIG.height + 'px';
+    
+    // Apply CSS transform to scale it
+    canvas.style.transform = `scale(${scale})`;
+    canvas.style.transformOrigin = 'center center';
+    
+    console.log('📱 Scaled mode - Scale factor:', scale.toFixed(3), 
+                'Screen:', screenWidth + '×' + screenHeight);
+  } else {
+    // 🖥️ LARGE SCREEN: Keep at exact 1152×648 pixels, NO scaling
+    canvas.style.width = CANVAS_CONFIG.width + 'px';
+    canvas.style.height = CANVAS_CONFIG.height + 'px';
+    canvas.style.transform = 'none'; // Remove any transform
+    
+    console.log('🖥️ Desktop mode - Canvas fixed at:', CANVAS_CONFIG.width + '×' + CANVAS_CONFIG.height,
+                'Screen:', screenWidth + '×' + screenHeight);
+  }
+};
 
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', () => {
