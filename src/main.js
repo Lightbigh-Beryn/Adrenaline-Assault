@@ -28,6 +28,29 @@ const canvas = initCanvas();
 const ctx = canvas.getContext('2d');
 
 /* =========================
+   Hit Response (iframes + disorientation)
+========================= */
+// Called from every place the player takes a hit. Grants the existing invincibility
+// window, and additionally makes the pilot "disoriented" for that same window:
+// knocked back away from the hit, slowed, and firing less effectively. Keeps the
+// safety net (you can't be re-hit or die during this window) without letting hits
+// turn into a free, consequence-free damage-dealing opportunity.
+function applyHitDisorientation(sourceX, sourceY) {
+  if (!GAME_CONFIG.IFRAME_ENABLED || player.iframeActive) return;
+
+  player.iframeActive = true;
+  player.iframeEnd = Date.now() + GAME_CONFIG.IFRAME_DURATION_MS;
+  player.disoriented = true;
+  player.disorientEnd = player.iframeEnd;
+
+  const px = player.x + player.width / 2, py = player.y + player.height / 2;
+  const dx = px - sourceX, dy = py - sourceY;
+  const mag = Math.hypot(dx, dy) || 1;
+  player.knockbackVx = (dx / mag) * GAME_CONFIG.KNOCKBACK_FORCE;
+  player.knockbackVy = (dy / mag) * GAME_CONFIG.KNOCKBACK_FORCE;
+}
+
+/* =========================
    Game State
 ========================= */
 let gameState = 'loading'; // 'title', 'countdown', 'playing'
@@ -698,17 +721,38 @@ function update() {
     }
   }
   
+  // Disorientation: brief post-hit debuff (slower movement + knockback drift),
+  // separate from the invincibility window itself (see applyHitDisorientation).
+  if (player.disoriented && Date.now() >= player.disorientEnd) {
+    player.disoriented = false;
+    player.knockbackVx = 0;
+    player.knockbackVy = 0;
+  }
+  const effectiveSpeed = player.disoriented
+    ? player.speed * GAME_CONFIG.DISORIENT_SPEED_MULT
+    : player.speed;
+
   // Player movement
-  if (isKeyPressed('ArrowLeft') || isKeyPressed('KeyA')) player.x -= player.speed * delta;
-  if (isKeyPressed('ArrowRight') || isKeyPressed('KeyD')) player.x += player.speed * delta;
-  if (isKeyPressed('ArrowUp') || isKeyPressed('KeyW')) player.y -= player.speed * delta;
-  if (isKeyPressed('ArrowDown') || isKeyPressed('KeyS')) player.y += player.speed * delta;
+  if (isKeyPressed('ArrowLeft') || isKeyPressed('KeyA')) player.x -= effectiveSpeed * delta;
+  if (isKeyPressed('ArrowRight') || isKeyPressed('KeyD')) player.x += effectiveSpeed * delta;
+  if (isKeyPressed('ArrowUp') || isKeyPressed('KeyW')) player.y -= effectiveSpeed * delta;
+  if (isKeyPressed('ArrowDown') || isKeyPressed('KeyS')) player.y += effectiveSpeed * delta;
   
   // Touch movement
   const touchMovement = getTouchMovement();
   if (touchMovement.x !== 0 || touchMovement.y !== 0) {
-    player.x += touchMovement.x * player.speed * delta;
-    player.y += touchMovement.y * player.speed * delta;
+    player.x += touchMovement.x * effectiveSpeed * delta;
+    player.y += touchMovement.y * effectiveSpeed * delta;
+  }
+
+  // Knockback drift (from the hit itself), decaying each frame
+  if (player.knockbackVx || player.knockbackVy) {
+    player.x += player.knockbackVx * delta;
+    player.y += player.knockbackVy * delta;
+    player.knockbackVx *= GAME_CONFIG.KNOCKBACK_DECAY;
+    player.knockbackVy *= GAME_CONFIG.KNOCKBACK_DECAY;
+    if (Math.abs(player.knockbackVx) < 0.05) player.knockbackVx = 0;
+    if (Math.abs(player.knockbackVy) < 0.05) player.knockbackVy = 0;
   }
   
   // Constrain player
@@ -716,6 +760,11 @@ function update() {
   const maxY = canvas.height - player.height - 50;
   player.x = Math.max(cameraX + 4, Math.min(cameraX + canvas.width - player.width - 4, player.x));
   player.y = Math.max(minY, Math.min(maxY, player.y));
+
+  // Enemy vertical bounds — separate from the player's, so enemies use the
+  // full play field instead of being capped by the player's own height/margin.
+  const enemyMinY = 20;
+  const enemyMaxY = canvas.height - 20;
   
   // Player shooting
   attemptShoot(isGameOver, adState.playing, upgradeOpen, isPaused);
@@ -777,11 +826,54 @@ function update() {
   // Update enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
+
+    if (e.isKamikaze && e.kamikazeState === 'armed') {
+      // Armed landmine: no more homing/chasing — brief settling drift, then a
+      // countdown to detonation. Fixes both the endless "chases past and backs up"
+      // loop and the invincibility-mode "sticking" bug, since this always ends
+      // in the mine being removed regardless of whether it manages to hit the player.
+      e.x += (e.driftVx || 0) * delta;
+      e.y += (e.driftVy || 0) * delta;
+      e.driftVx = (e.driftVx || 0) * 0.85;
+      e.driftVy = (e.driftVy || 0) * 0.85;
+      e.pulseTime = (e.pulseTime || 0) + 0.15;
+      e.armTimer -= deltaMs;
+
+      e.y = Math.max(enemyMinY, Math.min(enemyMaxY - e.height, e.y));
+
+      if (e.armTimer <= 0) {
+        const ex = e.x + e.width / 2, ey = e.y + e.height / 2;
+        const px = player.x + player.width / 2, py = player.y + player.height / 2;
+        const blastRadius = ((e.width + e.height) / 2) * 2;
+        const dist = Math.hypot(px - ex, py - ey);
+
+        enemies.splice(i, 1);
+
+        if (dist <= blastRadius && !player.invincible && !player.iframeActive) {
+          player.health -= e.explosionDamage;
+          player.stats.damageTaken += e.explosionDamage;
+          flashMessage('MINE DETONATED!', 800);
+          triggerCameraShake(12, 350);
+
+          if (player.health <= 0) {
+            player.health = 0;
+            isGameOver = true;
+            return;
+          }
+
+          if (GAME_CONFIG.IFRAME_ENABLED && !player.iframeActive) {
+            applyHitDisorientation(ex, ey);
+          }
+        }
+      }
+      continue;
+    }
+
     e.x -= e.speed * delta;
     
     if (e.behavior) e.behavior(e, player);
     
-    e.y = Math.max(minY, Math.min(maxY - e.height, e.y));
+    e.y = Math.max(enemyMinY, Math.min(enemyMaxY - e.height, e.y));
     
     // Enemy shooting
     if (e.canShoot) {
@@ -820,8 +912,34 @@ function update() {
       }
       
       if (GAME_CONFIG.IFRAME_ENABLED && !player.iframeActive) {
-        player.iframeActive = true;
-        player.iframeEnd = Date.now() + GAME_CONFIG.IFRAME_DURATION_MS;
+        applyHitDisorientation(e.x + e.width / 2, e.y + e.height / 2);
+      }
+    } else if (e.isKamikaze && (e.kamikazeState || 'chasing') === 'chasing') {
+      // Didn't land a hit this frame (dodged, or blocked by invincibility). Rather than
+      // relying on a fixed proximity radius (which the homing math doesn't reliably
+      // reach without also triggering an actual collision), track the closest distance
+      // it's gotten to the player. Once it's clearly moving away again after having
+      // closed in, that's a miss — arm it. A hard failsafe timer guarantees it never
+      // chases forever even in an edge case this doesn't catch.
+      const ex = e.x + e.width / 2, ey = e.y + e.height / 2;
+      const px = player.x + player.width / 2, py = player.y + player.height / 2;
+      const dist = Math.hypot(px - ex, py - ey);
+
+      if (e.closestDist === undefined || e.closestDist === Infinity) e.closestDist = dist;
+      if (dist < e.closestDist) e.closestDist = dist;
+
+      const engagedCloseEnough = e.closestDist <= 160; // it made a genuine approach, not just background
+      const nowReceding = dist - e.closestDist > 20;    // clearly moving away from its closest point
+      const chaseTooLong = Date.now() - (e.chaseStartTime || Date.now()) > 6000; // failsafe
+
+      if ((engagedCloseEnough && nowReceding) || chaseTooLong) {
+        e.kamikazeState = 'armed';
+        e.armTimer = 3000;
+        const dx = ex - px, dy = ey - py;
+        const mag = Math.hypot(dx, dy) || 1;
+        e.driftVx = (dx / mag) * 2;
+        e.driftVy = (dy / mag) * 2;
+        e.pulseTime = 0;
       }
     }
   }
@@ -913,8 +1031,7 @@ if (!player.invincible && !player.iframeActive && aabbCollide(B, player)) {
   }
   
   if (GAME_CONFIG.IFRAME_ENABLED && !player.iframeActive) {
-    player.iframeActive = true;
-    player.iframeEnd = Date.now() + GAME_CONFIG.IFRAME_DURATION_MS;
+    applyHitDisorientation(B.x + B.width / 2, B.y + B.height / 2);
   }
 }
 }
@@ -945,8 +1062,7 @@ if (!player.invincible && !player.iframeActive && aabbCollide(b, player)) {
   }
   
   if (GAME_CONFIG.IFRAME_ENABLED && !player.iframeActive) {
-    player.iframeActive = true;
-    player.iframeEnd = Date.now() + GAME_CONFIG.IFRAME_DURATION_MS;
+    applyHitDisorientation(b.x, b.y);
   }
 }
 }
@@ -1110,8 +1226,7 @@ if (!player.invincible && !player.iframeActive && aabbCollide(m, player)) {
   }
   
   if (GAME_CONFIG.IFRAME_ENABLED && !player.iframeActive) {
-    player.iframeActive = true;
-    player.iframeEnd = Date.now() + GAME_CONFIG.IFRAME_DURATION_MS;
+    applyHitDisorientation(m.x, m.y);
   }
 }
 }

@@ -3,6 +3,7 @@
 import { player } from './player.js';
 import { enemies, enemyBullets } from './enemies.js';
 import { bosses, homingMissiles } from './bosses.js';
+import { GAME_CONFIG } from './config.js';
 /* =========================
 Collision Helper
 ========================= */
@@ -18,7 +19,8 @@ if (isGameOver || adPlaying || upgradeOpen || isPaused) return;
 const now = Date.now();
 // Combo fire rate penalty
 const comboFireRatePenalty = (player.spreadShot && player.doubleShot) ? 1.2 : 1;
-const effectiveFireRate = player.fireRate * comboFireRatePenalty;
+const disorientPenalty = (player.disoriented && Date.now() < player.disorientEnd) ? GAME_CONFIG.DISORIENT_FIRERATE_MULT : 1;
+const effectiveFireRate = player.fireRate * comboFireRatePenalty * disorientPenalty;
 if (now - player.lastShot < effectiveFireRate) return;
 player.lastShot = now;
 const baseX = player.x + player.width;

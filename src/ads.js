@@ -1,111 +1,18 @@
-// Ad system with anti-cheat and verification
+// Ad system: display/verification logic. Anti-cheat lives in anti-cheat.js,
+// ad network settings live in config/ad-config.js (that's the file Ridge edits).
 import { player } from './player.js';
 import { GAME_CONFIG } from './config.js';
+import { AD_SETTINGS } from './config/ad-config.js';
+import { ANTI_CHEAT } from './anti-cheat.js';
+
+export { ANTI_CHEAT };
 
 /* =========================
-   ANTI-CHEAT SYSTEM
-========================= */
-export const ANTI_CHEAT = {
-  verifyStorage: function() {
-    try {
-      const testKey = '_game_integrity_check';
-      const testValue = Date.now().toString();
-      localStorage.setItem(testKey, testValue);
-      const retrieved = localStorage.getItem(testKey);
-      return retrieved === testValue;
-    } catch (e) {
-      return false;
-    }
-  },
-
-  lastTimestamp: Date.now(),
-  checkTimeTravel: function() {
-    const now = Date.now();
-    const elapsed = now - this.lastTimestamp;
-    
-    if (elapsed < -1000 || elapsed > 300000) {
-      return true;
-    }
-    
-    this.lastTimestamp = now;
-    return false;
-  },
-
-  consoleDetected: false,
-  detectConsole: function() {
-    const threshold = 160;
-    if (window.outerWidth - window.innerWidth > threshold ||
-        window.outerHeight - window.innerHeight > threshold) {
-      this.consoleDetected = true;
-      return true;
-    }
-    return false;
-  },
-
-  generateAdToken: function(adType, timestamp) {
-    const data = `${adType}_${timestamp}_${player.score}`;
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString(36);
-  },
-
-  verifyAdToken: function(token, adType, timestamp) {
-    const expected = this.generateAdToken(adType, timestamp);
-    return token === expected;
-  },
-
-  logAdCompletion: function(adType) {
-    const timestamp = Date.now();
-    const token = this.generateAdToken(adType, timestamp);
-    
-    const adLog = JSON.parse(localStorage.getItem('ad_completion_log') || '[]');
-    adLog.push({ adType, timestamp, token, score: player.score });
-    
-    if (adLog.length > 50) adLog.shift();
-    
-    localStorage.setItem('ad_completion_log', JSON.stringify(adLog));
-    return token;
-  },
-
-  checkAdSpam: function() {
-    const adLog = JSON.parse(localStorage.getItem('ad_completion_log') || '[]');
-    if (adLog.length < 2) return false;
-    
-    const lastTwo = adLog.slice(-2);
-    const timeDiff = lastTwo[1].timestamp - lastTwo[0].timestamp;
-    
-    return timeDiff < 5000;
-  }
-};
-
-/* =========================
-   AD CONFIG - ENHANCED (SINGLE VERSION)
+   AD CONFIG (logic only — settings come from AD_SETTINGS)
 ========================= */
 export const AD_CONFIG = {
-  // Toggle this when you deploy with real ads
-  REAL_ADS_ENABLED: false, // Set to true in production
-  
-  // Your ad network SDK URL (e.g., AdMob, Unity Ads)
-  AD_SDK_URL: '',
-  
-  // Your backend API endpoint
-  SERVER_ENABLED: false, // Set to true when you have a server
-  API_ENDPOINT: 'https://yourgame.com/api', // Your server URL
-  
-  // Legacy support
-  ACCOUNT_SYSTEM_ENABLED: false,
-  
-  // Ad unit IDs from your ad network
-  AD_UNITS: {
-    BOSS_REWARD: 'your-boss-ad-unit-id',
-    REVIVE: 'your-revive-ad-unit-id',
-    WHEEL: 'your-wheel-ad-unit-id'
-  },
-  
+  ...AD_SETTINGS,
+
   // Get user identifier (should be tied to account system)
   getPlayerId: function() {
     // In production, this should be from your auth system

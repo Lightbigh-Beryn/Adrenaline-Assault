@@ -188,6 +188,9 @@ export function spawnEnemy(gameState) {
     burstDelay: template.burstDelay,
     lastShot: 0,
     isKamikaze: template.isKamikaze || false,
+    kamikazeState: template.isKamikaze ? 'chasing' : undefined,
+    closestDist: Infinity,
+    chaseStartTime: Date.now(),
     explosionDamage: template.explosionDamage ? Math.floor(template.explosionDamage * damageMult) : 0,
     pulseTime: 0,
     shootCooldown: template.shootCooldown || 2000

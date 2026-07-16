@@ -57,11 +57,12 @@ export function updateWheel() {
     wheelState.spinning = false;
     
     // Calculate result
+    // The wedges are drawn rotated by +spinAngle (see drawPowerupWheel), while the
+    // pointer stays fixed at the top of the wheel. So the wedge under the pointer
+    // is found by rotating the *pointer* in the opposite direction: -spinAngle.
     const sliceAngle = (Math.PI * 2) / powerupPool.length;
-    let normalizedAngle = wheelState.spinAngle % (Math.PI * 2);
-    if (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
-    
-    let pointerAngle = (normalizedAngle + Math.PI / 2) % (Math.PI * 2);
+    let pointerAngle = (-wheelState.spinAngle) % (Math.PI * 2);
+    if (pointerAngle < 0) pointerAngle += Math.PI * 2;
     const sector = Math.floor(pointerAngle / sliceAngle) % powerupPool.length;
     
     wheelState.result = { ...powerupPool[sector] };

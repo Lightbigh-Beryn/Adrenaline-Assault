@@ -270,10 +270,13 @@ export function openUpgradePopup(invokedAfterRevive = false, bossType = null, bo
   const choices = [];
   while (choices.length < 3 && pool.length > 0) {
     const idx = Math.floor(Math.random() * pool.length);
-    const upgrade = pool.splice(idx, 1)[0];
+    // Clone the upgrade (not just a reference) — otherwise 'purchased = true' below
+    // gets written onto the shared UPGRADE_POOL object and sticks forever, blocking
+    // that upgrade from ever being offered again even though its stack isn't maxed.
+    const upgrade = { ...pool.splice(idx, 1)[0], purchased: false };
 
     // Show stack level in name
-    const level = player[`_${upgrade.id.replace(/_/g, '')}Level`] || 0;
+    const level = player[`_${upgrade.id}Level`] || 0;
     if (level > 0 && upgrade.maxStack > 1) {
       upgrade.displayName = `${upgrade.name} [${level}/${upgrade.maxStack}]`;
     } else {
@@ -336,7 +339,7 @@ function refreshUpgradeChoices() {
 
   while (unpurchased.length < 3 && pool.length > 0) {
     const idx = Math.floor(Math.random() * pool.length);
-    unpurchased.push(pool.splice(idx, 1)[0]);
+    unpurchased.push({ ...pool.splice(idx, 1)[0], purchased: false });
   }
 
   currentUpgradeChoices = [keepRecover, ...unpurchased];

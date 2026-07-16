@@ -24,6 +24,10 @@ homingMissileDamage: 25,
 lastHomingShot: 0,
 iframeActive: false,
 iframeEnd: 0,
+disoriented: false,
+disorientEnd: 0,
+knockbackVx: 0,
+knockbackVy: 0,
 // Stats tracking for battle summary
 stats: {
 shotsHit: 0,
