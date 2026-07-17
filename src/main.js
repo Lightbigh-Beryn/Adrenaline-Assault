@@ -1561,6 +1561,10 @@ function loop() {
     draw();  // ← ADD THIS!
   } else if (gameState === 'title') {
     draw();
+  } else if (gameState === 'settings') {
+    draw();
+  } else if (gameState === 'mobilePrompt') {
+    draw();
   } else if (gameState === 'countdown') {
     updateCountdown();
     draw();
