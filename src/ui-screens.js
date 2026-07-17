@@ -157,6 +157,11 @@ export function drawStarfield(ctx, cameraX) {
 /* =========================
    Title Screen
 ========================= */
+export function getSettingsGearBounds(ctx) {
+  const size = 44;
+  return { x: ctx.canvas.width - size - 16, y: 16, w: size, h: size };
+}
+
 export function drawTitleScreen(ctx, mouse, userHasInteracted) {
   if (titleBgLoaded) {
     ctx.drawImage(titleBg, 0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -219,11 +224,239 @@ export function drawTitleScreen(ctx, mouse, userHasInteracted) {
     ctx.textAlign = 'center';
     ctx.fillText('💡 Best played in landscape mode', ctx.canvas.width / 2, ctx.canvas.height - 25);
   }
+
+  // Settings gear button (top-right)
+  const gear = getSettingsGearBounds(ctx);
+  const gearHovered = (mouse.x >= gear.x && mouse.x <= gear.x + gear.w &&
+                        mouse.y >= gear.y && mouse.y <= gear.y + gear.h);
+  ctx.fillStyle = gearHovered ? 'rgba(0, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)';
+  ctx.fillRect(gear.x, gear.y, gear.w, gear.h);
+  ctx.strokeStyle = gearHovered ? '#00ffff' : '#888888';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(gear.x, gear.y, gear.w, gear.h);
+  ctx.fillStyle = gearHovered ? '#00ffff' : '#cccccc';
+  ctx.font = '24px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⚙', gear.x + gear.w / 2, gear.y + gear.h / 2 + 2);
 }
 
 /* =========================
-   Countdown Screen
+   Settings Screen
 ========================= */
+export function getSettingsLayout(ctx) {
+  const panelW = 480, panelH = 540;
+  const panelX = ctx.canvas.width / 2 - panelW / 2;
+  const panelY = ctx.canvas.height / 2 - panelH / 2;
+
+  const rowH = 60;
+  const rowX = panelX + 30;
+  const rowW = panelW - 60;
+  const firstRowY = panelY + 80;
+
+  const toggleW = 90, toggleH = 36;
+
+  const backW = 160, backH = 50;
+  const backX = ctx.canvas.width / 2 - backW / 2;
+  const backY = panelY + panelH - 65;
+
+  return {
+    panelX, panelY, panelW, panelH,
+    fullscreenRowY: firstRowY,
+    rotateRowY: firstRowY + rowH,
+    controlSideRowY: firstRowY + rowH * 2,
+    soundRowY: firstRowY + rowH * 3,
+    musicRowY: firstRowY + rowH * 4,
+    graphicsRowY: firstRowY + rowH * 5,
+    rowX, rowW,
+    toggleX: rowX + rowW - toggleW, toggleW, toggleH,
+    backX, backY, backW, backH
+  };
+}
+
+export function drawSettingsScreen(ctx, mouse, settings) {
+  ctx.fillStyle = 'rgba(0, 8, 20, 0.92)';
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  const L = getSettingsLayout(ctx);
+
+  ctx.fillStyle = 'rgba(10, 20, 35, 0.95)';
+  ctx.fillRect(L.panelX, L.panelY, L.panelW, L.panelH);
+  ctx.strokeStyle = '#00ffff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(L.panelX, L.panelY, L.panelW, L.panelH);
+
+  ctx.fillStyle = '#00ffff';
+  ctx.font = 'bold 28px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SETTINGS', ctx.canvas.width / 2, L.panelY + 40);
+
+  const drawToggleRow = (label, rowY, isOn, enabled) => {
+    ctx.fillStyle = enabled ? '#ffffff' : '#666666';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, L.rowX, rowY);
+
+    const tx = L.toggleX, ty = rowY - L.toggleH / 2, tw = L.toggleW, th = L.toggleH;
+    const hovered = enabled && mouse.x >= tx && mouse.x <= tx + tw && mouse.y >= ty && mouse.y <= ty + th;
+
+    ctx.fillStyle = !enabled ? 'rgba(255,255,255,0.08)' : (isOn ? '#00cc66' : 'rgba(255,255,255,0.15)');
+    if (hovered) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12; }
+    ctx.fillRect(tx, ty, tw, th);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = enabled ? '#ffffff' : '#555555';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(tx, ty, tw, th);
+
+    ctx.fillStyle = enabled ? (isOn ? '#000000' : '#ffffff') : '#888888';
+    ctx.font = 'bold 15px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(enabled ? (isOn ? 'ON' : 'OFF') : 'SOON', tx + tw / 2, ty + th / 2 + 1);
+  };
+
+  drawToggleRow('Fullscreen', L.fullscreenRowY, settings.fullscreenEnabled, true);
+  drawToggleRow('Suggest Landscape (mobile)', L.rotateRowY, settings.wantRotateHint, true);
+
+  // Control side selector (Left/Right, not a simple on/off)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '20px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('Thumb Controls Side', L.rowX, L.controlSideRowY);
+
+  const csx = L.toggleX, csy = L.controlSideRowY - L.toggleH / 2, cstw = L.toggleW, csth = L.toggleH;
+  const csHovered = mouse.x >= csx && mouse.x <= csx + cstw && mouse.y >= csy && mouse.y <= csy + csth;
+  ctx.fillStyle = csHovered ? 'rgba(0,255,136,0.25)' : 'rgba(255,255,255,0.15)';
+  if (csHovered) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12; }
+  ctx.fillRect(csx, csy, cstw, csth);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(csx, csy, cstw, csth);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 15px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(settings.leftHanded ? 'LEFT' : 'RIGHT', csx + cstw / 2, csy + csth / 2 + 1);
+
+  drawToggleRow('Sound Effects', L.soundRowY, false, false);
+  drawToggleRow('Music', L.musicRowY, false, false);
+  drawToggleRow('Graphics Quality', L.graphicsRowY, false, false);
+
+  // Back button
+  const backHovered = mouse.x >= L.backX && mouse.x <= L.backX + L.backW &&
+                       mouse.y >= L.backY && mouse.y <= L.backY + L.backH;
+  ctx.fillStyle = backHovered ? '#00ff88' : '#00cc66';
+  if (backHovered) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15; }
+  ctx.fillRect(L.backX, L.backY, L.backW, L.backH);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(L.backX, L.backY, L.backW, L.backH);
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 20px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('BACK', L.backX + L.backW / 2, L.backY + L.backH / 2);
+
+  ctx.fillStyle = '#666666';
+  ctx.font = 'italic 13px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Sound, music, and graphics options coming soon', ctx.canvas.width / 2, L.panelY + L.panelH - 100);
+}
+
+/* =========================
+   Mobile Startup Prompt
+   (real phones/tablets only — IS_MOBILE is UA-based, so touchscreen
+   laptops correctly never see this)
+========================= */
+export function getMobilePromptLayout(ctx) {
+  const panelW = 440, panelH = 300;
+  const panelX = ctx.canvas.width / 2 - panelW / 2;
+  const panelY = ctx.canvas.height / 2 - panelH / 2;
+
+  const rowH = 64;
+  const rowX = panelX + 30;
+  const rowW = panelW - 60;
+  const firstRowY = panelY + 100;
+
+  const toggleW = 90, toggleH = 36;
+
+  const continueW = 200, continueH = 54;
+  const continueX = ctx.canvas.width / 2 - continueW / 2;
+  const continueY = panelY + panelH - 80;
+
+  return {
+    panelX, panelY, panelW, panelH,
+    rotateRowY: firstRowY,
+    fullscreenRowY: firstRowY + rowH,
+    rowX, rowW,
+    toggleX: rowX + rowW - toggleW, toggleW, toggleH,
+    continueX, continueY, continueW, continueH
+  };
+}
+
+export function drawMobilePrompt(ctx, mouse, prefs) {
+  ctx.fillStyle = 'rgba(0, 8, 20, 0.92)';
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  const L = getMobilePromptLayout(ctx);
+
+  ctx.fillStyle = 'rgba(10, 20, 35, 0.95)';
+  ctx.fillRect(L.panelX, L.panelY, L.panelW, L.panelH);
+  ctx.strokeStyle = '#00ffff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(L.panelX, L.panelY, L.panelW, L.panelH);
+
+  ctx.fillStyle = '#00ffff';
+  ctx.font = 'bold 22px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('DISPLAY OPTIONS', ctx.canvas.width / 2, L.panelY + 40);
+  ctx.fillStyle = '#aaaaaa';
+  ctx.font = '14px Arial';
+  ctx.fillText('You can change these anytime in Settings', ctx.canvas.width / 2, L.panelY + 68);
+
+  const drawToggleRow = (label, rowY, isOn) => {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '19px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, L.rowX, rowY);
+
+    const tx = L.toggleX, ty = rowY - L.toggleH / 2, tw = L.toggleW, th = L.toggleH;
+    const hovered = mouse.x >= tx && mouse.x <= tx + tw && mouse.y >= ty && mouse.y <= ty + th;
+
+    ctx.fillStyle = isOn ? '#00cc66' : 'rgba(255,255,255,0.15)';
+    if (hovered) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12; }
+    ctx.fillRect(tx, ty, tw, th);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(tx, ty, tw, th);
+
+    ctx.fillStyle = isOn ? '#000000' : '#ffffff';
+    ctx.font = 'bold 15px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(isOn ? 'ON' : 'OFF', tx + tw / 2, ty + th / 2 + 1);
+  };
+
+  drawToggleRow('Suggest Landscape', L.rotateRowY, prefs.wantRotateHint);
+  drawToggleRow('Fullscreen', L.fullscreenRowY, prefs.wantFullscreen);
+
+  // Continue button
+  const hovered = mouse.x >= L.continueX && mouse.x <= L.continueX + L.continueW &&
+                  mouse.y >= L.continueY && mouse.y <= L.continueY + L.continueH;
+  ctx.fillStyle = hovered ? '#00ff88' : '#00cc66';
+  if (hovered) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15; }
+  ctx.fillRect(L.continueX, L.continueY, L.continueW, L.continueH);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(L.continueX, L.continueY, L.continueW, L.continueH);
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 20px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('CONTINUE', L.continueX + L.continueW / 2, L.continueY + L.continueH / 2);
+}
+
 export function drawCountdown(ctx, countdownValue) {
   ctx.fillStyle = '#001020';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -297,10 +530,11 @@ export function drawPauseScreen(ctx, mouse) {
 }
 
 export function drawOrientationWarning(ctx) {
-  console.log('Checking orientation - IS_MOBILE:', IS_MOBILE, 
-              'Width:', window.innerWidth, 'Height:', window.innerHeight);
-  
   if (!IS_MOBILE) return false;
+
+  // Respect the user's preference (set on first mobile launch, changeable in Settings)
+  const wantRotateHint = localStorage.getItem('wantRotateHint');
+  if (wantRotateHint === 'false') return false;
   
   // Check if portrait mode (height > width)
   const isPortrait = window.innerHeight > window.innerWidth;

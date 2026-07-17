@@ -47,17 +47,6 @@
       touch-action: none;
     }
 
-    /* Touch control zone (left black bar) */
-    #touch-zone {
-      display: none;
-      position: fixed;
-      left: 0;
-      top: 0;
-      height: 100vh;
-      z-index: 10;
-      touch-action: none;
-    }
-
     /* Loading overlay */
     #loading {
       position: absolute;
@@ -85,9 +74,6 @@
     <p style="font-size:16px;color:#aaa;">Initializing game modules...</p>
   </div>
 
-  <!-- Left-side touch control area -->
-  <div id="touch-zone"></div>
-
   <!-- Game container -->
   <div id="game-wrapper">
     <canvas id="gameCanvas"></canvas>
@@ -99,28 +85,13 @@
   <!-- Layout + Fullscreen Logic -->
   <script>
     function adjustLandscapeLayout() {
-      const canvas = document.getElementById('gameCanvas');
-      const touchZone = document.getElementById('touch-zone');
-
-      if (!canvas || !touchZone) return;
-
-      const isLandscape = matchMedia('(orientation: landscape)').matches;
-      const isTouch = matchMedia('(pointer: coarse)').matches;
-
-      // Reset for portrait or non-touch
-      if (!isLandscape || !isTouch) {
-        canvas.style.marginLeft = '0px';
-        touchZone.style.display = 'none';
-        return;
-      }
-
-      // Measure real black-bar space
-      const rect = canvas.getBoundingClientRect();
-      const blackBarWidth = Math.max(0, rect.left);
-
-      canvas.style.marginLeft = blackBarWidth + 'px';
-      touchZone.style.width = blackBarWidth + 'px';
-      touchZone.style.display = blackBarWidth > 0 ? 'block' : 'none';
+      // Previously this shoved the canvas to one side and reserved a dedicated
+      // touch-zone div for the joystick. That's no longer needed — the joystick
+      // (see drawTouchControls in the game) is a floating, semi-transparent
+      // control that appears wherever the player's thumb actually lands, right
+      // on the canvas itself. The canvas now just stays naturally centered with
+      // even letterbox bars on either side (no stretching, no offset).
+      // Kept as a resize hook in case future layout logic is needed here.
     }
 
     function tryFullscreen() {
@@ -131,14 +102,25 @@
       }
     }
 
+    function exitFullscreen() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+        document.webkitExitFullscreen?.();
+      }
+    }
+
+    // Expose to the game module so the Settings screen's Fullscreen toggle can call these.
+    // The game no longer requests fullscreen automatically — it's an explicit,
+    // opt-in choice from the title/settings screen (per Ridge's feedback: the game
+    // should start in its native window, not force fullscreen on the site).
+    window.__adrenalineAssault_tryFullscreen = tryFullscreen;
+    window.__adrenalineAssault_exitFullscreen = exitFullscreen;
+
     // Events
     window.addEventListener('resize', adjustLandscapeLayout);
 
     window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        adjustLandscapeLayout();
-        tryFullscreen();
-      }, 300);
+      setTimeout(adjustLandscapeLayout, 300);
     });
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -149,9 +131,6 @@
         document.getElementById('loading')?.classList.add('hidden');
       }, 1000);
     });
-
-    // Required user gesture for fullscreen
-    window.addEventListener('click', tryFullscreen, { once: true });
 
     // Prevent mobile scroll/zoom
     document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });

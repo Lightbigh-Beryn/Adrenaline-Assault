@@ -365,7 +365,7 @@ export function drawPowerupWheel(ctx, mouse, spinning, spinAngle, spinResult, sp
     ctx.fillText("Spin to get a random power-up!", cx, cy - radius - 40);
     ctx.font = "18px Arial";
     ctx.fillStyle = "#ffff00";
-    ctx.fillText("[Press SPACE or ENTER to Spin]", cx, cy + radius + 50);
+    ctx.fillText("[Press SPACE, ENTER, or TAP to Spin]", cx, cy + radius + 50);
   } else if (spinning) {
     ctx.fillText("Spinning...", cx, cy - radius - 90);
   } else if (spinResult) {

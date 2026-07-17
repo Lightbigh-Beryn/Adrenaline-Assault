@@ -128,7 +128,14 @@ export function claimWheelReward() {
    Wheel Click Detection
 ========================= */
 export function checkWheelClick(mx, my, canvas, adState) {
-  if (!wheelState.result) return false; // Only allow clicks after spin completes
+  // Tap-to-spin: same trigger as pressing Space/Enter. No special button needed —
+  // any tap while the wheel is ready and hasn't spun yet starts it.
+  if (wheelState.ready && !wheelState.spinning && !wheelState.result) {
+    startSpin();
+    return true;
+  }
+
+  if (!wheelState.result) return false; // Only allow post-spin clicks after this point
   
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;

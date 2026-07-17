@@ -1,10 +1,12 @@
 // src/main.js - Main game loop and state management
-import { GAME_CONFIG, CANVAS_CONFIG, createBossTriggers } from './config.js';
+import { GAME_CONFIG, CANVAS_CONFIG, createBossTriggers, IS_MOBILE } from './config.js';
 import { bgImage, bgLoaded, areAllAssetsLoaded, getLoadingProgress, waitForAssets } from './assets.js';
 import { initCanvas, drawStarfield, drawTitleScreen, drawCountdown, drawPauseScreen, 
          drawHealthBar, drawActiveUpgrades, drawPowerupInventory, drawGameOverOverlay, 
          drawAdOverlay, drawTouchControls, drawGameEntities, drawProjectiles, 
-         flashMessage, drawFlashMessage, drawOrientationWarning, drawLoadingScreen } from './ui.js'; 
+         flashMessage, drawFlashMessage, drawOrientationWarning, drawLoadingScreen,
+         getSettingsGearBounds, drawSettingsScreen, getSettingsLayout,
+         drawMobilePrompt, getMobilePromptLayout } from './ui.js'; 
 import { drawUpgradePopup, drawBattleSummary, drawPowerupWheel } from './ui-menus.js';
 import { player, resetRoundStats, calculatePerformanceRating, roundStats } from './player.js';
 import { enemies, enemyBullets, spawnEnemy, enemyShoot, resetEnemies, ENEMY_TYPES } from './enemies.js';
@@ -53,7 +55,22 @@ function applyHitDisorientation(sourceX, sourceY) {
 /* =========================
    Game State
 ========================= */
-let gameState = 'loading'; // 'title', 'countdown', 'playing'
+let gameState = 'loading'; // 'title', 'settings', 'mobilePrompt', 'countdown', 'playing'
+
+function loadBoolPref(key, defaultVal) {
+  const v = localStorage.getItem(key);
+  return v === null ? defaultVal : v === 'true';
+}
+function savePref(key, val) {
+  localStorage.setItem(key, val ? 'true' : 'false');
+}
+
+let uiSettings = {
+  fullscreenEnabled: false,
+  wantFullscreen: loadBoolPref('wantFullscreenOnMobile', true),
+  wantRotateHint: loadBoolPref('wantRotateHint', true),
+  leftHanded: loadBoolPref('leftHandedControls', true)
+};
 let countdownValue = 3;
 let countdownStartTime = 0;
 let cameraX = 0;
@@ -178,6 +195,18 @@ function handleMouseDown(e, mousePos) {
     checkTitleScreenClick(mx, my);
     return;
   }
+
+  // Settings screen
+  if (gameState === 'settings') {
+    checkSettingsScreenClick(mx, my);
+    return;
+  }
+
+  // Mobile startup prompt
+  if (gameState === 'mobilePrompt') {
+    checkMobilePromptClick(mx, my);
+    return;
+  }
   
   // Battle summary
   if (showBattleSummary) {
@@ -225,12 +254,98 @@ function handleWindowBlur() {
    Title Screen Click
 ========================= */
 function checkTitleScreenClick(mx, my) {
+  const gear = getSettingsGearBounds(ctx);
+  if (mx >= gear.x && mx <= gear.x + gear.w && my >= gear.y && my <= gear.y + gear.h) {
+    gameState = 'settings';
+    return;
+  }
+
   const btnW = 240, btnH = 60;
   const btnX = canvas.width / 2 - btnW / 2;
   const btnY = canvas.height / 2 + 120;
   
   if (mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH) {
     startCountdown();
+  }
+}
+
+/* =========================
+   Settings Screen Click
+========================= */
+function checkSettingsScreenClick(mx, my) {
+  const L = getSettingsLayout(ctx);
+
+  // Fullscreen toggle
+  const fsx = L.toggleX, fsy = L.fullscreenRowY - L.toggleH / 2, tw = L.toggleW, th = L.toggleH;
+  if (mx >= fsx && mx <= fsx + tw && my >= fsy && my <= fsy + th) {
+    if (uiSettings.fullscreenEnabled) {
+      window.__adrenalineAssault_exitFullscreen?.();
+      uiSettings.fullscreenEnabled = false;
+    } else {
+      window.__adrenalineAssault_tryFullscreen?.();
+      uiSettings.fullscreenEnabled = true;
+    }
+    uiSettings.wantFullscreen = uiSettings.fullscreenEnabled;
+    savePref('wantFullscreenOnMobile', uiSettings.wantFullscreen);
+    return;
+  }
+
+  // Rotate hint toggle
+  const rhx = L.toggleX, rhy = L.rotateRowY - L.toggleH / 2;
+  if (mx >= rhx && mx <= rhx + tw && my >= rhy && my <= rhy + th) {
+    uiSettings.wantRotateHint = !uiSettings.wantRotateHint;
+    savePref('wantRotateHint', uiSettings.wantRotateHint);
+    return;
+  }
+
+  // Control side (left/right handed)
+  const csx = L.toggleX, csy = L.controlSideRowY - L.toggleH / 2;
+  if (mx >= csx && mx <= csx + tw && my >= csy && my <= csy + th) {
+    uiSettings.leftHanded = !uiSettings.leftHanded;
+    savePref('leftHandedControls', uiSettings.leftHanded);
+    return;
+  }
+
+  // Back button
+  if (mx >= L.backX && mx <= L.backX + L.backW && my >= L.backY && my <= L.backY + L.backH) {
+    gameState = 'title';
+  }
+}
+
+/* =========================
+   Mobile Startup Prompt Click
+========================= */
+function checkMobilePromptClick(mx, my) {
+  const L = getMobilePromptLayout(ctx);
+  const tw = L.toggleW, th = L.toggleH;
+
+  // Rotate hint toggle
+  const rhx = L.toggleX, rhy = L.rotateRowY - th / 2;
+  if (mx >= rhx && mx <= rhx + tw && my >= rhy && my <= rhy + th) {
+    uiSettings.wantRotateHint = !uiSettings.wantRotateHint;
+    return;
+  }
+
+  // Fullscreen toggle
+  const fsx = L.toggleX, fsy = L.fullscreenRowY - th / 2;
+  if (mx >= fsx && mx <= fsx + tw && my >= fsy && my <= fsy + th) {
+    uiSettings.wantFullscreen = !uiSettings.wantFullscreen;
+    return;
+  }
+
+  // Continue button
+  if (mx >= L.continueX && mx <= L.continueX + L.continueW &&
+      my >= L.continueY && my <= L.continueY + L.continueH) {
+    localStorage.setItem('mobilePromptSeen', 'true');
+    savePref('wantFullscreenOnMobile', uiSettings.wantFullscreen);
+    savePref('wantRotateHint', uiSettings.wantRotateHint);
+
+    if (uiSettings.wantFullscreen) {
+      window.__adrenalineAssault_tryFullscreen?.();
+      uiSettings.fullscreenEnabled = true;
+    }
+
+    gameState = 'title';
   }
 }
 
@@ -1319,7 +1434,13 @@ function draw() {
     // Check if loading is complete
     if (areAllAssetsLoaded()) {
       console.log('✅ All assets loaded!');
-      gameState = 'title'; // Move to title screen
+      // Real phones/tablets (IS_MOBILE is UA-based) see a one-time display prompt
+      // before the title screen; touchscreen laptops correctly skip this.
+      if (IS_MOBILE && !localStorage.getItem('mobilePromptSeen')) {
+        gameState = 'mobilePrompt';
+      } else {
+        gameState = 'title';
+      }
     }
     return; // Exit early, don't apply camera shake
   }
@@ -1327,6 +1448,20 @@ function draw() {
   // TITLE SCREEN - Draw without camera shake
   if (gameState === 'title') {
     drawTitleScreen(ctx, mouse, userHasInteracted);
+    return; // Exit early
+  }
+
+  // SETTINGS SCREEN - Draw without camera shake
+  if (gameState === 'settings') {
+    drawTitleScreen(ctx, mouse, userHasInteracted);
+    drawSettingsScreen(ctx, mouse, uiSettings);
+    return; // Exit early
+  }
+
+  // MOBILE STARTUP PROMPT - Draw without camera shake
+  if (gameState === 'mobilePrompt') {
+    drawTitleScreen(ctx, mouse, userHasInteracted);
+    drawMobilePrompt(ctx, mouse, uiSettings);
     return; // Exit early
   }
   
@@ -1380,7 +1515,7 @@ ctx.textAlign = 'right';
 ctx.fillText(`Credits: ${player.score}`, canvas.width - 18, 30);
 
 // Touch controls
-drawTouchControls(ctx, touchControls);
+drawTouchControls(ctx, touchControls, uiSettings.leftHanded);
 
 // Flash messages
 drawFlashMessage(ctx);

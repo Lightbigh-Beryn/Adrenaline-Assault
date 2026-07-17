@@ -308,8 +308,32 @@ export function drawAdOverlay(ctx, adRemaining) {
   ctx.fillText('(Simulated ad for debugging)', ctx.canvas.width/2, ctx.canvas.height/2 + 100);
 }
 
-export function drawTouchControls(ctx, touchControls) {
-  if (!IS_MOBILE || !touchControls.active) return;
+export function drawTouchControls(ctx, touchControls, leftHanded = true) {
+  if (!IS_MOBILE) return;
+
+  if (!touchControls.active) {
+    // Idle hint: a soft, breathing ring showing roughly where to rest a thumb
+    // for movement. Purely a visual suggestion — touching anywhere on the
+    // canvas still works, this just answers "where should my thumb go?"
+    const margin = 90;
+    const hintX = leftHanded ? margin : ctx.canvas.width - margin;
+    const hintY = ctx.canvas.height - margin;
+    const pulse = Math.sin(Date.now() / 500) * 0.15 + 0.55;
+
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.arc(hintX, hintY, 48 * pulse + 14, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.7)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(hintX, hintY, 12, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
   
   const centerX = touchControls.startX;
   const centerY = touchControls.startY;

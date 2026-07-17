@@ -73,15 +73,14 @@ export function setupInputHandlers(canvas, callbacks) {
   });
 
   /* =========================
-     TOUCH CONTROLS (REWORKED)
-     - Movement from LEFT touch zone
-     - UI taps still hit canvas
+     TOUCH CONTROLS
+     Floating joystick: appears wherever the thumb lands on the canvas,
+     works for movement. UI taps (menus, buttons) also register via the
+     same canvas touch events, translated into mouse coordinates below.
   ========================= */
 
-  const touchZone = document.getElementById('touch-zone') || window;
-
-  // Touch start (movement)
-  touchZone.addEventListener('touchstart', (e) => {
+  // Touch start (movement + UI tap)
+  canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
 
     if (!userHasInteracted) {
@@ -90,16 +89,28 @@ export function setupInputHandlers(canvas, callbacks) {
 
     const touch = e.changedTouches[0];
 
+    // Joystick anchor
     touchControls.active = true;
     touchControls.identifier = touch.identifier;
     touchControls.startX = touch.clientX;
     touchControls.startY = touch.clientY;
     touchControls.currentX = touch.clientX;
     touchControls.currentY = touch.clientY;
+
+    // UI tap (menus/buttons) — translate to canvas-space mouse coords
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouse.x = (touch.clientX - rect.left) * scaleX;
+    mouse.y = (touch.clientY - rect.top) * scaleY;
+
+    if (callbacks.onMouseDown) {
+      callbacks.onMouseDown(e, mouse);
+    }
   }, { passive: false });
 
-  // Touch move (movement)
-  touchZone.addEventListener('touchmove', (e) => {
+  // Touch move (movement + UI hover)
+  canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
 
     for (let i = 0; i < e.changedTouches.length; i++) {
@@ -110,10 +121,21 @@ export function setupInputHandlers(canvas, callbacks) {
         break;
       }
     }
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const touch = e.touches[0];
+    if (touch) {
+      mouse.x = (touch.clientX - rect.left) * scaleX;
+      mouse.y = (touch.clientY - rect.top) * scaleY;
+    }
   }, { passive: false });
 
-  // Touch end (movement)
-  touchZone.addEventListener('touchend', (e) => {
+  // Touch end
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
       if (touch.identifier === touchControls.identifier) {
@@ -122,46 +144,13 @@ export function setupInputHandlers(canvas, callbacks) {
         break;
       }
     }
+
+    mouse.down = false;
   }, { passive: false });
 
-  touchZone.addEventListener('touchcancel', () => {
+  canvas.addEventListener('touchcancel', () => {
     touchControls.active = false;
     touchControls.identifier = null;
-  }, { passive: false });
-
-  /* ===== Canvas UI Touches ===== */
-  canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const touch = e.changedTouches[0];
-    mouse.x = (touch.clientX - rect.left) * scaleX;
-    mouse.y = (touch.clientY - rect.top) * scaleY;
-
-    if (callbacks.onMouseDown) {
-      callbacks.onMouseDown(e, mouse);
-    }
-  }, { passive: false });
-
-  canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const touch = e.touches[0];
-    if (!touch) return;
-
-    mouse.x = (touch.clientX - rect.left) * scaleX;
-    mouse.y = (touch.clientY - rect.top) * scaleY;
-  }, { passive: false });
-
-  canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
     mouse.down = false;
   }, { passive: false });
 
