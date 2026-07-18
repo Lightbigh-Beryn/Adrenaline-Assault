@@ -1,5 +1,6 @@
 // Upgrade shop, power-ups, and special abilities
 import { player } from './player.js';
+import { flashMessage } from './ui-screens.js';
 
 /* =========================
    Recover Health Upgrade
@@ -354,4 +355,29 @@ export function isAnyPowerupActive() {
     }
   }
   return null;
+}
+
+// Shared "use this hotbar powerup" logic — used by the keyboard shortcuts (1-4),
+// the canvas-drawn hotbar (desktop/landscape), and the mobile DOM-overlay
+// semicircle hotbar (portrait), so all three stay in sync automatically.
+export function activatePowerupById(id) {
+  const powerup = TIMED_POWERUPS[id];
+  if (!powerup) return false;
+
+  const count = player.powerups[id] || 0;
+  if (count <= 0) {
+    flashMessage('No charges remaining!', 1000);
+    return false;
+  }
+
+  const activePowerup = isAnyPowerupActive();
+  if (activePowerup) {
+    flashMessage(`Wait for ${activePowerup} to finish!`, 1500);
+    return false;
+  }
+
+  player.powerups[id]--;
+  powerup.apply();
+  flashMessage(`${powerup.name.replace('\n', ' ')} activated!`, 1500);
+  return true;
 }

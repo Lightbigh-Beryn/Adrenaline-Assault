@@ -13,7 +13,7 @@ import { enemies, enemyBullets, spawnEnemy, enemyShoot, resetEnemies, ENEMY_TYPE
 import { bosses, homingMissiles, spawnBoss, bossConeShotAttack, bossHomingMissileAttack, 
          bossSpiralAttack, resetBosses } from './bosses.js';
 import { openUpgradePopup, purchaseUpgradeAt, TIMED_POWERUPS, isAnyPowerupActive, 
-         applyRandomSpecialPower, currentUpgradeChoices } from './upgrades.js';
+         applyRandomSpecialPower, currentUpgradeChoices, activatePowerupById } from './upgrades.js';
 import { attemptShoot, aabbCollide, createHitSpark, updateHitSparks } from './weapons.js';
 import { setupInputHandlers, keys, mouse, touchControls, userHasInteracted, 
          isKeyPressed, getTouchMovement } from './input.js';
@@ -22,6 +22,7 @@ import { showWheel, hideWheel, startSpin, updateWheel, checkWheelClick,
 import { ANTI_CHEAT, AD_CONFIG, canWatchBossAd, setBossAdWatched, msUntilBossAdAvailable,
          canWatchReviveAd, setReviveAdCooldown, msUntilReviveAdAvailable } from './ads.js';
 import { updateCameraShake, cameraShake, triggerCameraShake, updateFPS, getFPS } from './utils.js';
+import { initMobileControls, isMobileOverlayActive, refreshMobileControlsLayout, setMobileControlsGameplayActive } from './mobile-controls.js';
 
 /* =========================
    Canvas Setup
@@ -117,6 +118,8 @@ setupInputHandlers(canvas, {
   onWindowBlur: handleWindowBlur
 });
 
+initMobileControls(() => uiSettings.leftHanded);
+
 /* =========================
    Key Down Handler
 ========================= */
@@ -141,15 +144,7 @@ function handleKeyDown(e) {
   if (gameState === 'playing' && !isPaused && !isGameOver && !upgradeOpen && !wheelState.show) {
     Object.entries(TIMED_POWERUPS).forEach(([id, powerup]) => {
       if (e.key === powerup.key && player.powerups[id] > 0) {
-        const activePowerup = isAnyPowerupActive();
-        if (activePowerup) {
-          flashMessage(`Wait for ${activePowerup} to finish!`, 1500);
-          return;
-        }
-        
-        player.powerups[id]--;
-        powerup.apply();
-        flashMessage(`${powerup.name.replace('\n', ' ')} activated!`, 1500);
+        activatePowerupById(id);
       }
     });
   }
@@ -303,6 +298,7 @@ function checkSettingsScreenClick(mx, my) {
   if (mx >= csx && mx <= csx + tw && my >= csy && my <= csy + th) {
     uiSettings.leftHanded = !uiSettings.leftHanded;
     savePref('leftHandedControls', uiSettings.leftHanded);
+    refreshMobileControlsLayout();
     return;
   }
 
@@ -389,15 +385,7 @@ function checkHotbarClick(mx, my) {
     if (mx >= slotX && mx <= slotX + SLOT_SIZE && my >= slotY && my <= slotY + SLOT_SIZE) {
       const count = player.powerups[id] || 0;
       if (count > 0) {
-        const activePowerup = isAnyPowerupActive();
-        if (activePowerup) {
-          flashMessage(`Wait for ${activePowerup} to finish!`, 1500);
-          return true;
-        }
-        
-        player.powerups[id]--;
-        powerup.apply();
-        flashMessage(`${powerup.name.replace('\n', ' ')} activated!`, 1500);
+        activatePowerupById(id);
         return true;
       } else {
         flashMessage('No charges remaining!', 1000);
@@ -1501,7 +1489,9 @@ drawProjectiles(ctx, cameraX);
 // Draw HUD
 drawHealthBar(ctx);
 drawActiveUpgrades(ctx);
-drawPowerupInventory(ctx, mouse);
+if (!isMobileOverlayActive()) {
+  drawPowerupInventory(ctx, mouse);
+}
 
 // Round/score info
 ctx.fillStyle = '#00ffff';
@@ -1514,7 +1504,9 @@ ctx.textAlign = 'right';
 ctx.fillText(`Credits: ${player.score}`, canvas.width - 18, 30);
 
 // Touch controls
-drawTouchControls(ctx, touchControls, uiSettings.leftHanded);
+if (!isMobileOverlayActive()) {
+  drawTouchControls(ctx, touchControls, uiSettings.leftHanded);
+}
 
 // Flash messages
 drawFlashMessage(ctx);
@@ -1556,6 +1548,7 @@ drawPauseScreen(ctx, mouse);
 Main Loop
 ========================= */
 function loop() {
+  setMobileControlsGameplayActive(gameState === 'playing' || gameState === 'countdown');
   if (gameState === 'loading') {
     draw();  // ← ADD THIS!
   } else if (gameState === 'title') {

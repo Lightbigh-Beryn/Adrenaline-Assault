@@ -47,6 +47,91 @@
       touch-action: none;
     }
 
+    /* =========================
+       Mobile DOM-overlay controls (portrait, real phones/tablets only)
+       Anchored to actual viewport corners so they're reachable regardless
+       of the canvas's letterboxed position/size.
+    ========================= */
+    .mobile-overlay {
+      position: fixed;
+      bottom: 20px;
+      z-index: 50;
+      display: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .mobile-overlay.visible { display: block; }
+    .mobile-overlay.side-left { left: 20px; }
+    .mobile-overlay.side-right { right: 20px; }
+
+    #joystick-zone {
+      width: 130px;
+      height: 130px;
+    }
+    .joystick-base {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 100px; height: 100px;
+      margin: -50px 0 0 -50px;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, 0.08);
+      border: 2px solid rgba(0, 255, 255, 0.35);
+    }
+    .joystick-knob {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 46px; height: 46px;
+      margin: -23px 0 0 -23px;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, 0.45);
+      border: 2px solid rgba(0, 255, 255, 0.9);
+      transition: transform 0.05s linear;
+    }
+
+    #hotbar-semicircle {
+      width: 170px;
+      height: 170px;
+    }
+    .hotbar-slot {
+      position: absolute;
+      width: 46px;
+      height: 46px;
+      margin-left: -23px;
+      margin-top: -23px;
+      border-radius: 10px;
+      background: rgba(40, 40, 40, 0.75);
+      border: 2px solid #666666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #444444;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .hotbar-slot.has-charges {
+      background: rgba(0, 100, 50, 0.75);
+      border-color: #00ff88;
+      color: #ffffff;
+    }
+    .hotbar-slot.active {
+      border-color: #ffff00;
+      animation: hotbar-slot-pulse 1s ease-in-out infinite;
+    }
+    .hotbar-slot .count-badge {
+      position: absolute;
+      bottom: 1px;
+      right: 3px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000000, 0 0 3px #000000;
+    }
+    @keyframes hotbar-slot-pulse {
+      0%, 100% { box-shadow: 0 0 8px 2px var(--glow-color, #ffff00); }
+      50% { box-shadow: 0 0 18px 5px var(--glow-color, #ffff00); }
+    }
+
     /* Loading overlay */
     #loading {
       position: absolute;
@@ -78,6 +163,13 @@
   <div id="game-wrapper">
     <canvas id="gameCanvas"></canvas>
   </div>
+
+  <!-- Mobile DOM-overlay controls (portrait, real phones/tablets only) -->
+  <div id="joystick-zone" class="mobile-overlay">
+    <div class="joystick-base"></div>
+    <div class="joystick-knob" id="joystick-knob"></div>
+  </div>
+  <div id="hotbar-semicircle" class="mobile-overlay"></div>
 
   <!-- Game entry -->
   <script type="module" src="src/main.js"></script>
