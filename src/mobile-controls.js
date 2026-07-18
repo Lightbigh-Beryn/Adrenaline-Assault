@@ -8,7 +8,7 @@ import { touchControls } from './input.js';
 import { TIMED_POWERUPS, activatePowerupById } from './upgrades.js';
 import { player } from './player.js';
 
-const CONTAINER_SIZE = 170; // must match #hotbar-semicircle width/height in CSS
+const CONTAINER_SIZE = 200; // must match #hotbar-semicircle width/height in CSS
 const GLOW_COLORS = {
   homingMissiles: '#00ffff',
   shieldBubble: '#ffff00',
@@ -111,7 +111,7 @@ function positionHotbarSlots() {
   // quarter-circle sweep (not a full 180°, which wouldn't fit at a corner).
   const startAngle = -90; // straight up
   const endAngle = isLeftCorner ? 0 : -180; // inward toward center
-  const radius = 92;
+  const radius = 145;
   const origin = isLeftCorner ? 0 : CONTAINER_SIZE;
 
   hotbarSlots.forEach(({ el }, i) => {
