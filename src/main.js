@@ -4,7 +4,7 @@ import { bgImage, bgLoaded, areAllAssetsLoaded, getLoadingProgress, waitForAsset
 import { initCanvas, drawStarfield, drawTitleScreen, drawCountdown, drawPauseScreen, 
          drawHealthBar, drawActiveUpgrades, drawPowerupInventory, drawGameOverOverlay, 
          drawAdOverlay, drawTouchControls, drawGameEntities, drawProjectiles, 
-         flashMessage, drawFlashMessage, drawOrientationWarning, drawLoadingScreen,
+         flashMessage, drawFlashMessage, drawLoadingScreen,
          getSettingsGearBounds, drawSettingsScreen, getSettingsLayout,
          drawMobilePrompt, getMobilePromptLayout } from './ui.js'; 
 import { drawUpgradePopup, drawBattleSummary, drawPowerupWheel } from './ui-menus.js';
@@ -1465,10 +1465,9 @@ function draw() {
     return; // Exit early
   }
   
-  // Check orientation warning during gameplay
-  if (drawOrientationWarning(ctx)) {
-    return; // Don't draw anything else if in portrait mode
-  }
+  // Note: portrait play is no longer hard-blocked. The one-time mobile prompt
+  // (on first launch) and the "Suggest Landscape" toggle in Settings already
+  // cover this — tablets and anyone who prefers portrait can just play.
 
   // GAMEPLAY - Apply camera shake ONLY during gameplay
   ctx.save();

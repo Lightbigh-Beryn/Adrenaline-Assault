@@ -26,9 +26,11 @@ player.lastShot = now;
 const baseX = player.x + player.width;
 const baseY = player.y + player.height / 2;
 const projSpeedBoost = player._projSpeedInc || 0;
-// Homing missiles mode
+// Homing missiles mode — fires ALONGSIDE the normal gun (bonus damage on top,
+// not a replacement), since this is a power-up and should only ever feel like
+// a buff, never a downgrade from losing your normal weapon.
 if (player.homingMissilesActive) {
-if (now - player.lastHomingShot < player.homingMissileFireRate) return;
+if (now - player.lastHomingShot >= player.homingMissileFireRate) {
 player.lastHomingShot = now;
 // Find nearest enemy
 let nearestEnemy = null;
@@ -52,31 +54,31 @@ bosses.forEach(b => {
 });
 
 // Only fire if target exists
-if (!nearestEnemy) return;
+if (nearestEnemy) {
+  // Fire homing missile toward target
+  const targetAngle = Math.atan2(nearestEnemy.y - baseY, nearestEnemy.x - baseX);
 
-// Fire homing missile toward target
-const targetAngle = Math.atan2(nearestEnemy.y - baseY, nearestEnemy.x - baseX);
+  homingMissiles.push({
+    x: baseX,
+    y: baseY,
+    width: 16,
+    height: 8,
+    vx: Math.cos(targetAngle) * 8,
+    vy: Math.sin(targetAngle) * 8,
+    color: '#00ffff',
+    damage: player.homingMissileDamage,
+    homingDuration: 3000,
+    homingStart: Date.now(),
+    speed: 8,
+    turnRate: 0.15,
+    trail: [],
+    isPlayerMissile: true,
+    pierce: player.piercing
+  });
 
-homingMissiles.push({
-  x: baseX,
-  y: baseY,
-  width: 16,
-  height: 8,
-  vx: Math.cos(targetAngle) * 8,
-  vy: Math.sin(targetAngle) * 8,
-  color: '#00ffff',
-  damage: player.homingMissileDamage,
-  homingDuration: 3000,
-  homingStart: Date.now(),
-  speed: 8,
-  turnRate: 0.15,
-  trail: [],
-  isPlayerMissile: true,
-  pierce: player.piercing
-});
-
-player.stats.shotsFired++;
-return;
+  player.stats.shotsFired++;
+}
+}
 }
 const addBullet = (x, y, vx, vy, dmg) => {
 player.bullets.push({

@@ -110,18 +110,6 @@ export function drawGameEntities(ctx, cameraX) {
       ctx.fillRect(psx, Math.round(player.y), player.width, player.height);
     }
     ctx.restore();
-    
-    const remaining = Math.ceil((player.iframeEnd - Date.now()) / 1000);
-    ctx.save();
-    ctx.shadowColor = '#ffd700';
-    ctx.shadowBlur = 15;
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`PROTECTED`, psx + player.width / 2, Math.round(player.y) - 25); // FIXED: Added backticks
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(`${remaining}`, psx + player.width / 2, Math.round(player.y) - 5); // FIXED: Added backticks
-    ctx.restore();
   } else {
     if (shipLoaded) {
       ctx.drawImage(shipImage, psx, Math.round(player.y), player.width, player.height);

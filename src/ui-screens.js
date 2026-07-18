@@ -1,5 +1,5 @@
 // Screen states: canvas setup, loading, title, countdown, pause, orientation warning, flash messages
-import { CANVAS_CONFIG, IS_MOBILE } from './config.js';
+import { CANVAS_CONFIG } from './config.js';
 import { titleBg, titleBgLoaded } from './assets.js';
 
 export function initCanvas() {
@@ -532,54 +532,6 @@ export function drawPauseScreen(ctx, mouse) {
   ctx.fillStyle = '#aaaaaa';
   ctx.font = '18px Arial';
   ctx.fillText('Press ESC or P to resume', ctx.canvas.width / 2, ctx.canvas.height - 60);
-}
-
-export function drawOrientationWarning(ctx) {
-  if (!IS_MOBILE) return false;
-
-  // Respect the user's preference (set on first mobile launch, changeable in Settings)
-  const wantRotateHint = localStorage.getItem('wantRotateHint');
-  if (wantRotateHint === 'false') return false;
-  
-  // Check if portrait mode (height > width)
-  const isPortrait = window.innerHeight > window.innerWidth;
-  
-  console.log('Is Portrait:', isPortrait);
-  
-  if (isPortrait) {
-    // Fill entire canvas
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    
-    ctx.fillStyle = '#00ffff';
-    ctx.font = 'bold 32px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#00ffff';
-    ctx.shadowBlur = 20;
-    
-    // Rotate icon
-    ctx.save();
-    ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2 - 60);
-    ctx.rotate(Math.PI / 2);
-    ctx.font = 'bold 80px Arial';
-    ctx.fillText('📱', 0, 0);
-    ctx.restore();
-    
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px Arial';
-    ctx.fillText('Please rotate your device', ctx.canvas.width / 2, ctx.canvas.height / 2 + 40);
-    ctx.font = '24px Arial';
-    ctx.fillText('to landscape mode', ctx.canvas.width / 2, ctx.canvas.height / 2 + 80);
-    
-    ctx.fillStyle = '#ffff00';
-    ctx.font = '20px Arial';
-    ctx.fillText('for the best experience', ctx.canvas.width / 2, ctx.canvas.height / 2 + 120);
-    
-    return true;
-  }
-  return false;
 }
 
 export { drawFlashMessage };
