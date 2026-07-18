@@ -111,7 +111,7 @@ function positionHotbarSlots() {
   // quarter-circle sweep (not a full 180°, which wouldn't fit at a corner).
   const startAngle = -90; // straight up
   const endAngle = isLeftCorner ? 0 : -180; // inward toward center
-  const radius = 68;
+  const radius = 92;
   const origin = isLeftCorner ? 0 : CONTAINER_SIZE;
 
   hotbarSlots.forEach(({ el }, i) => {
